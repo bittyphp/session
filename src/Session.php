@@ -148,7 +148,9 @@ class Session implements SessionInterface
             return false;
         }
 
-        return session_write_close();
+        session_write_close();
+
+        return true;
     }
 
     /**
