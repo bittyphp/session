@@ -26,6 +26,70 @@ class SessionTest extends TestCase
         self::assertInstanceOf(SessionInterface::class, $this->fixture);
     }
 
+    /**
+     * @runInSeparateProcess
+     */
+    public function testDefaultOptionsSet(): void
+    {
+        $this->fixture->start();
+
+        self::assertEquals('1', ini_get('session.use_strict_mode'), 'incorrect use_strict_mode');
+        self::assertEquals('0', ini_get('session.use_trans_sid'), 'incorrect use_trans_sid');
+        self::assertEquals('1', ini_get('session.use_cookies'), 'incorrect use_cookies');
+        self::assertEquals('1', ini_get('session.use_only_cookies'), 'incorrect use_only_cookies');
+        self::assertEquals('1', ini_get('session.cookie_httponly'), 'incorrect cookie_httponly');
+        self::assertEquals('0', ini_get('session.cookie_secure'), 'incorrect cookie_secure');
+        self::assertEquals('0', ini_get('session.cookie_lifetime'), 'incorrect cookie_lifetime');
+        self::assertEquals('nocache', ini_get('session.cache_limiter'), 'incorrect cache_limiter');
+        self::assertEquals('0', ini_get('session.cache_expire'), 'incorrect cache_expire');
+        self::assertEquals('1', ini_get('session.lazy_write'), 'incorrect lazy_write');
+        if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
+            self::assertEquals('Strict', ini_get('session.cookie_samesite'), 'incorrect cookie_samesite');
+        }
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testCustomOptionsSet(): void
+    {
+        $options = [
+            'use_strict_mode' => 0,
+            'use_trans_sid' => 1,
+            'use_cookies' => 0,
+            'use_only_cookies' => 0,
+            'cookie_httponly' => 0,
+            'cookie_secure' => 1,
+            'cookie_lifetime' => 1,
+            'cache_limiter' => '',
+            'cache_expire' => 30,
+            'lazy_write' => 0,
+        ];
+        if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
+            $options['cookie_samesite'] = 'Lax';
+        }
+
+        $this->fixture = new Session($options);
+        ob_start();
+        $this->fixture->start();
+        ob_get_clean();
+        ob_end_flush();
+
+        self::assertEquals('0', ini_get('session.use_strict_mode'), 'incorrect use_strict_mode');
+        self::assertEquals('1', ini_get('session.use_trans_sid'), 'incorrect use_trans_sid');
+        self::assertEquals('0', ini_get('session.use_cookies'), 'incorrect use_cookies');
+        self::assertEquals('0', ini_get('session.use_only_cookies'), 'incorrect use_only_cookies');
+        self::assertEquals('0', ini_get('session.cookie_httponly'), 'incorrect cookie_httponly');
+        self::assertEquals('1', ini_get('session.cookie_secure'), 'incorrect cookie_secure');
+        self::assertEquals('1', ini_get('session.cookie_lifetime'), 'incorrect cookie_lifetime');
+        self::assertEquals('', ini_get('session.cache_limiter'), 'incorrect cache_limiter');
+        self::assertEquals('30', ini_get('session.cache_expire'), 'incorrect cache_expire');
+        self::assertEquals('0', ini_get('session.lazy_write'), 'incorrect lazy_write');
+        if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
+            self::assertEquals('Lax', ini_get('session.cookie_samesite'), 'incorrect cookie_samesite');
+        }
+    }
+
     public function testGetIdWhenNotStarted(): void
     {
         $actual = $this->fixture->getId();
@@ -175,6 +239,54 @@ class SessionTest extends TestCase
         self::assertTrue($actual);
     }
 
+    /**
+     * @runInSeparateProcess
+     */
+    public function testRegenerateDefaultsToNoDestroy(): void
+    {
+        $handler = new TestSessionHandler();
+        $this->fixture->setHandler($handler);
+
+        $this->fixture->start();
+        $this->fixture->regenerate();
+
+        $actual = $handler->getCalls();
+
+        $expected = [
+            'open',
+            'read',
+            'write',
+            'close',
+            'open',
+            'read',
+        ];
+        self::assertEquals($expected, $actual);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testRegenerateAndDestroy(): void
+    {
+        $handler = new TestSessionHandler();
+        $this->fixture->setHandler($handler);
+
+        $this->fixture->start();
+        $this->fixture->regenerate(true);
+
+        $actual = $handler->getCalls();
+
+        $expected = [
+            'open',
+            'read',
+            'destroy',
+            'close',
+            'open',
+            'read',
+        ];
+        self::assertEquals($expected, $actual);
+    }
+
     public function testCloseWhenNotStarted(): void
     {
         $actual = $this->fixture->close();
@@ -192,6 +304,28 @@ class SessionTest extends TestCase
         $actual = $this->fixture->close();
 
         self::assertTrue($actual);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testCloseWritesAndCloses(): void
+    {
+        $handler = new TestSessionHandler();
+        $this->fixture->setHandler($handler);
+
+        $this->fixture->start();
+        $this->fixture->close();
+
+        $actual = $handler->getCalls();
+
+        $expected = [
+            'open',
+            'read',
+            'write',
+            'close',
+        ];
+        self::assertEquals($expected, $actual);
     }
 
     public function testDestroyWhenNotStarted(): void
@@ -433,5 +567,23 @@ class SessionTest extends TestCase
 
         self::assertContains('open', $actual);
         self::assertContains('read', $actual);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testShutdown(): void
+    {
+        $handler = new TestSessionHandler();
+        $this->fixture->setHandler($handler);
+        $this->fixture->start();
+
+        register_shutdown_function(function () use ($handler) {
+            $actual = $handler->getCalls();
+            self::assertEquals(['open', 'read', 'write', 'close'], $actual);
+        });
+
+        $actual = $handler->getCalls();
+        self::assertEquals(['open', 'read'], $actual);
     }
 }

@@ -34,25 +34,25 @@ class Session implements SessionInterface
         $defaults = [
             // Mandatory for general session security
             // Set by default based on OWASP guidelines
-            'use_strict_mode' => true,
+            'use_strict_mode' => 1,
 
             // Session ID should come from the server, not the client
             // Set by default based on OWASP guidelines
-            'use_trans_sid' => false,
+            'use_trans_sid' => 0,
 
             // Use a cookie to give the client the session ID
-            'use_cookies' => true,
+            'use_cookies' => 1,
 
             // Disallow passing the session ID in URLs
-            'use_only_cookies' => true,
+            'use_only_cookies' => 1,
 
             // Block script access to the cookie
             // Set by default based on OWASP guidelines
-            'cookie_httponly' => true,
+            'cookie_httponly' => 1,
 
             // Restrict cookie to HTTPS channels
             // Set by default based on OWASP guidelines
-            'cookie_secure' => $this->isSecure(),
+            'cookie_secure' => (int) $this->isSecure(),
 
             // Keep until the browser is closed
             // Set by default based on OWASP guidelines
@@ -71,10 +71,10 @@ class Session implements SessionInterface
             'cache_expire' => 0,
 
             // Session data is only rewritten if it changes
-            'lazy_write' => true,
+            'lazy_write' => 1,
         ];
 
-        if (version_compare(PHP_VERSION, '7.3.0', '<=')) {
+        if (version_compare(PHP_VERSION, '7.3.0', '<')) {
             unset($defaults['cookie_samesite']);
         }
 
@@ -256,7 +256,7 @@ class Session implements SessionInterface
             throw new \RuntimeException('Session has already been started.');
         }
 
-        session_set_save_handler($handler, false);
+        session_set_save_handler($handler);
     }
 
     /**
