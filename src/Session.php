@@ -74,7 +74,7 @@ class Session implements SessionInterface
             'lazy_write' => 1,
         ];
 
-        if (version_compare(PHP_VERSION, '7.3.0', '<=')) {
+        if (version_compare(PHP_VERSION, '7.3.0', '<')) {
             unset($defaults['cookie_samesite']);
         }
 
