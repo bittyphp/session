@@ -9,7 +9,7 @@ class Session implements SessionInterface
     /**
      * @var mixed[]
      */
-    protected $options = [];
+    private $options = [];
 
     /**
      * This sets up a session with defaults that follow OWASP's guide for
