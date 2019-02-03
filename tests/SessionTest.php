@@ -252,15 +252,11 @@ class SessionTest extends TestCase
 
         $actual = $handler->getCalls();
 
-        $expected = [
-            'open',
-            'read',
-            'write',
-            'close',
-            'open',
-            'read',
-        ];
-        self::assertEquals($expected, $actual);
+        self::assertContains('open', $actual);
+        self::assertContains('read', $actual);
+        self::assertContains('write', $actual);
+        self::assertContains('close', $actual);
+        self::assertNotContains('destroy', $actual);
     }
 
     /**
@@ -276,15 +272,11 @@ class SessionTest extends TestCase
 
         $actual = $handler->getCalls();
 
-        $expected = [
-            'open',
-            'read',
-            'destroy',
-            'close',
-            'open',
-            'read',
-        ];
-        self::assertEquals($expected, $actual);
+        self::assertContains('open', $actual);
+        self::assertContains('read', $actual);
+        self::assertContains('destroy', $actual);
+        self::assertContains('close', $actual);
+        self::assertNotContains('write', $actual);
     }
 
     public function testCloseWhenNotStarted(): void
@@ -319,13 +311,10 @@ class SessionTest extends TestCase
 
         $actual = $handler->getCalls();
 
-        $expected = [
-            'open',
-            'read',
-            'write',
-            'close',
-        ];
-        self::assertEquals($expected, $actual);
+        self::assertContains('open', $actual);
+        self::assertContains('read', $actual);
+        self::assertContains('write', $actual);
+        self::assertContains('close', $actual);
     }
 
     public function testDestroyWhenNotStarted(): void
@@ -580,10 +569,35 @@ class SessionTest extends TestCase
 
         register_shutdown_function(function () use ($handler) {
             $actual = $handler->getCalls();
-            self::assertEquals(['open', 'read', 'write', 'close'], $actual);
+            self::assertContains('write', $actual);
+            self::assertContains('close', $actual);
         });
 
         $actual = $handler->getCalls();
-        self::assertEquals(['open', 'read'], $actual);
+
+        self::assertContains('open', $actual);
+        self::assertContains('read', $actual);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testShutdownFunctionRegistered(): void
+    {
+        $handler = new TestSessionHandler();
+        session_set_save_handler($handler, false);
+
+        $this->fixture->start();
+
+        register_shutdown_function(function () use ($handler) {
+            $actual = $handler->getCalls();
+            self::assertContains('write', $actual);
+            self::assertContains('close', $actual);
+        });
+
+        $actual = $handler->getCalls();
+
+        self::assertContains('open', $actual);
+        self::assertContains('read', $actual);
     }
 }
