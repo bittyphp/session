@@ -29,7 +29,7 @@ class Session implements SessionInterface
      * @param mixed[] $options Valid options for session_start(). See manual.
      * @param \SessionHandlerInterface|null $handler
      */
-    public function __construct(array $options = [], \SessionHandlerInterface $handler = null)
+    public function __construct(array $options = [], ?\SessionHandlerInterface $handler = null)
     {
         $defaults = [
             // Mandatory for general session security
@@ -82,9 +82,11 @@ class Session implements SessionInterface
 
         session_register_shutdown();
 
-        if ($handler) {
-            $this->setHandler($handler);
+        if (!$handler) {
+            return;
         }
+
+        $this->setHandler($handler);
     }
 
     /**
@@ -218,9 +220,11 @@ class Session implements SessionInterface
             throw new \RuntimeException('Session has not been started.');
         }
 
-        if (isset($_SESSION[$key])) {
-            unset($_SESSION[$key]);
+        if (!isset($_SESSION[$key])) {
+            return;
         }
+
+        unset($_SESSION[$key]);
     }
 
     /**
@@ -266,6 +270,6 @@ class Session implements SessionInterface
      */
     private function isSecure(): bool
     {
-        return !empty($_SERVER['HTTPS']) && 'off' !== strtolower($_SERVER['HTTPS']);
+        return !empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off';
     }
 }

@@ -43,9 +43,11 @@ class SessionTest extends TestCase
         self::assertEquals('nocache', ini_get('session.cache_limiter'), 'incorrect cache_limiter');
         self::assertEquals('0', ini_get('session.cache_expire'), 'incorrect cache_expire');
         self::assertEquals('1', ini_get('session.lazy_write'), 'incorrect lazy_write');
-        if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
-            self::assertEquals('Strict', ini_get('session.cookie_samesite'), 'incorrect cookie_samesite');
+        if (!version_compare(PHP_VERSION, '7.3.0', '>=')) {
+            return;
         }
+
+        self::assertEquals('Strict', ini_get('session.cookie_samesite'), 'incorrect cookie_samesite');
     }
 
     /**
@@ -85,9 +87,11 @@ class SessionTest extends TestCase
         self::assertEquals('', ini_get('session.cache_limiter'), 'incorrect cache_limiter');
         self::assertEquals('30', ini_get('session.cache_expire'), 'incorrect cache_expire');
         self::assertEquals('0', ini_get('session.lazy_write'), 'incorrect lazy_write');
-        if (version_compare(PHP_VERSION, '7.3.0', '>=')) {
-            self::assertEquals('Lax', ini_get('session.cookie_samesite'), 'incorrect cookie_samesite');
+        if (!version_compare(PHP_VERSION, '7.3.0', '>=')) {
+            return;
         }
+
+        self::assertEquals('Lax', ini_get('session.cookie_samesite'), 'incorrect cookie_samesite');
     }
 
     public function testGetIdWhenNotStarted(): void
@@ -152,7 +156,7 @@ class SessionTest extends TestCase
             'started, with name' => [
                 'options' => ['name' => $name],
                 'started' => true,
-                'expected' => $name
+                'expected' => $name,
             ],
         ];
     }
@@ -453,7 +457,7 @@ class SessionTest extends TestCase
 
         try {
             $this->fixture->remove(uniqid());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             self::fail();
         }
 
@@ -567,7 +571,7 @@ class SessionTest extends TestCase
         $this->fixture->setHandler($handler);
         $this->fixture->start();
 
-        register_shutdown_function(function () use ($handler) {
+        register_shutdown_function(function () use ($handler): void {
             $actual = $handler->getCalls();
             self::assertContains('write', $actual);
             self::assertContains('close', $actual);
@@ -589,7 +593,7 @@ class SessionTest extends TestCase
 
         $this->fixture->start();
 
-        register_shutdown_function(function () use ($handler) {
+        register_shutdown_function(function () use ($handler): void {
             $actual = $handler->getCalls();
             self::assertContains('write', $actual);
             self::assertContains('close', $actual);
