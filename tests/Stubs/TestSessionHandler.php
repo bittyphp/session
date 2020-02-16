@@ -58,7 +58,7 @@ class TestSessionHandler implements \SessionHandlerInterface
     }
 
     /**
-     * @param string $maxLifetime
+     * @param int $maxLifetime
      *
      * @return bool
      */
